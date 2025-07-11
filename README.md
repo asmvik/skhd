@@ -39,6 +39,11 @@ Requires xcode-8 command-line tools.
       brew install koekeishiya/formulae/skhd
       skhd --start-service
 
+**MacPorts**:
+
+      sudo port install skhd
+      sudo port load skhd
+
 **Source**:
 
 Requires xcode-8 command-line tools.
