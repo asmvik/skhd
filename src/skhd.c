@@ -51,6 +51,7 @@ extern CGError CGSRegisterNotifyProc(void *handler, uint32_t type, void *context
 #define SKHD_CONFIG_FILE ".skhdrc"
 #define SKHD_PIDFILE_FMT "/tmp/skhd_%s.pid"
 
+#define SKHD_HELP_OPT_LONG      "--help"
 #define VERSION_OPT_LONG        "--version"
 #define VERSION_OPT_SHRT        "-v"
 
@@ -267,6 +268,40 @@ static void create_pid_file(void)
     debug("skhd: successfully created pid-file..\n");
 }
 
+static void show_help(void)
+{
+    printf("skhd-v%d.%d.%d\n\n", MAJOR, MINOR, PATCH);
+    printf("Usage: skhd [options]\n\n");
+    printf("Options:\n");
+    printf("  -V, --verbose             Output debug information\n");
+    printf("  -P, --profile             Output profiling information\n");
+    printf("  -v, --version             Print version number to stdout\n");
+    printf("      --help                Show this help message\n");
+    printf("  -c, --config <file>       Specify location of config file\n");
+    printf("  -o, --observe             Output keycode and modifiers of event. Ctrl+C to quit\n");
+    printf("  -r, --reload              Signal a running instance to reload its config file\n");
+    printf("  -h, --no-hotload          Disable system for hotloading config file\n");
+    printf("  -k, --key <hotkey>        Synthesize a keypress (same syntax as when defining a hotkey)\n");
+    printf("  -t, --text <text>         Synthesize a line of text\n\n");
+    printf("Service management:\n");
+    printf("  --install-service         Install launchd service file\n");
+    printf("  --uninstall-service       Remove launchd service file\n");
+    printf("  --start-service           Run skhd as a service through launchd\n");
+    printf("  --restart-service         Restart skhd service\n");
+    printf("  --stop-service            Stop skhd service from running\n\n");
+    printf("Configuration file locations (in order):\n");
+    printf("  $XDG_CONFIG_HOME/skhd/skhdrc\n");
+    printf("  $HOME/.config/skhd/skhdrc\n");
+    printf("  $HOME/.skhdrc\n\n");
+    printf("Examples:\n");
+    printf("  skhd                      Run with default config file\n");
+    printf("  skhd -c ~/.myskhdrc       Run with custom config file\n");
+    printf("  skhd -o                   Observe key events\n");
+    printf("  skhd -k \"cmd - t\"         Synthesize Cmd+T keypress\n");
+    printf("  skhd -t \"hello world\"     Type text\n");
+    printf("  skhd --start-service      Start as launchd service\n");
+}
+
 static inline bool string_equals(const char *a, const char *b)
 {
     return a && b && strcmp(a, b) == 0;
@@ -300,6 +335,11 @@ static bool parse_arguments(int argc, char **argv)
         exit(service_stop());
     }
 
+    if (string_equals(argv[1], SKHD_HELP_OPT_LONG)) {
+        show_help();
+        exit(EXIT_SUCCESS);
+    }
+
     int option;
     const char *short_option = "VPvc:k:t:rho";
     struct option long_option[] = {
@@ -311,6 +351,7 @@ static bool parse_arguments(int argc, char **argv)
         { "text", required_argument, NULL, 't' },
         { "reload", no_argument, NULL, 'r' },
         { "observe", no_argument, NULL, 'o' },
+        { "help", no_argument, NULL, 0 },
         { NULL, 0, NULL, 0 }
     };
 
