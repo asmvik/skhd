@@ -26,7 +26,7 @@ list of features
 
 ### Install
 
-The first time **skhd** is ran, it will request access to the accessibility API.
+The first time **skhd** is run, it will request access to the accessibility API.
 
 After access has been granted, the application must be restarted.
 
