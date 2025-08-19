@@ -10,6 +10,12 @@ struct load_directive
     struct token option;
 };
 
+struct load_glob_directive
+{
+    char *pattern;
+    struct token option;
+};
+
 struct table;
 struct parser
 {
@@ -20,6 +26,7 @@ struct parser
     struct table *mode_map;
     struct table *blacklst;
     struct load_directive *load_directives;
+    struct load_glob_directive *load_glob_directives;
     bool error;
 };
 

@@ -97,6 +97,10 @@
 # .load "/Users/Koe/.config/partial_skhdrc"
 # .load "partial_skhdrc"
 
+# specify a glob pattern for files that should be included.
+#
+# .load_glob "../skhd.d/*.conf"
+
 # prevent skhd from monitoring events for specific applications.
 #
 # .blacklist [
