@@ -148,7 +148,7 @@ same_file(char *absolutepath, struct watched_file *file_info)
 
 static FSEVENT_CALLBACK(hotloader_handler)
 {
-    /* NOTE(koekeishiya): We sometimes get two events upon file save. */
+    /* NOTE(asmvik): We sometimes get two events upon file save. */
     struct hotloader *hotloader = (struct hotloader *) context;
     char **files = (char **) file_paths;
 

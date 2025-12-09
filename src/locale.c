@@ -14,7 +14,7 @@ static char *copy_cfstring(CFStringRef string)
     CFIndex num_bytes = CFStringGetMaximumSizeForEncoding(CFStringGetLength(string), kCFStringEncodingUTF8);
     char *result = malloc(num_bytes + 1);
 
-    // NOTE(koekeishiya): Boolean: typedef -> unsigned char; false = 0, true != 0
+    // NOTE(asmvik): Boolean: typedef -> unsigned char; false = 0, true != 0
     if (!CFStringGetCString(string, result, num_bytes + 1, kCFStringEncodingUTF8)) {
         free(result);
         result = NULL;

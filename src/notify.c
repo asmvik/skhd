@@ -2,7 +2,7 @@ void notify_init(void)
 {
     class_replaceMethod(objc_getClass("NSBundle"),
                         sel_registerName("bundleIdentifier"),
-                        method_getImplementation((void *)^{return CFSTR("com.koekeishiya.skhd");}),
+                        method_getImplementation((void *)^{return CFSTR("com.asmvik.skhd");}),
                         NULL);
 }
 

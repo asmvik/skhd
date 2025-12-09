@@ -66,7 +66,7 @@ static void
 eat_string(struct tokenizer *tokenizer)
 {
     /*
-     * NOTE(koekeishiya): This is NOT proper string parsing code, as we do
+     * NOTE(asmvik): This is NOT proper string parsing code, as we do
      * not check for escaped '"' here. At the time of writing, this is only
      * supposed to be used for parsing names of processes, and such names
      * should not contain escaped quotes at all. We are lazy and simply do

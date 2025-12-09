@@ -261,7 +261,7 @@ static void create_pid_file(void)
         error("skhd: could not write pid-file! abort..\n");
     }
 
-    // NOTE(koekeishiya): we intentionally leave the handle open,
+    // NOTE(asmvik): we intentionally leave the handle open,
     // as calling close(..) will release the lock we just acquired.
 
     debug("skhd: successfully created pid-file..\n");

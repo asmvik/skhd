@@ -1,5 +1,5 @@
-#  NOTE(koekeishiya): A list of all built-in modifier and literal keywords can
-#                     be found at https://github.com/koekeishiya/skhd/issues/1
+#  NOTE(asmvik): A list of all built-in modifier and literal keywords can
+#                     be found at https://github.com/asmvik/skhd/issues/1
 #
 #                     A hotkey is written according to the following rules:
 #
@@ -45,7 +45,7 @@
 #
 #                       ~            = application is unbound and keypress is forwarded per usual, when specified in a <proc_map>
 #
-#  NOTE(koekeishiya): A mode is declared according to the following rules:
+#  NOTE(asmvik): A mode is declared according to the following rules:
 #
 #                       mode_decl = '::' <name> '@' ':' <command> | '::' <name> ':' <command> |
 #                                   '::' <name> '@'               | '::' <name>
