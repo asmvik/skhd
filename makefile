@@ -16,4 +16,4 @@ clean:
 
 $(BUILD_PATH)/skhd: $(SKHD_SRC)
 	mkdir -p $(BUILD_PATH)
-	clang $^ $(BUILD_FLAGS) $(FRAMEWORKS) -o $@
+	xcrun clang $^ $(BUILD_FLAGS) $(FRAMEWORKS) -o $@
