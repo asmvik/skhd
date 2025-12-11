@@ -31,6 +31,7 @@ The first time **skhd** is ran, it will request access to the accessibility API.
 After access has been granted, the application must be restarted.
 
 *Secure Keyboard Entry* must be disabled for **skhd** to receive key-events.
+ * Ensure that it is disable for *all* applications (default Terminal application as well as iTerm, Alacritty etc.)
 
 **Homebrew**:
 
