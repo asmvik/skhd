@@ -63,12 +63,13 @@ bool same_hotkey(struct hotkey *a, struct hotkey *b)
            compare_lr_mod(a, b, LRMOD_SHIFT) &&
            compare_fn(a, b) &&
            compare_nx(a, b) &&
-           a->key == b->key;
+           a->key == b->key &&
+           a->button == b->button;
 }
 
 unsigned long hash_hotkey(struct hotkey *a)
 {
-    return a->key;
+    return (a->key << 6) | a->button;
 }
 
 bool compare_string(char *a, char *b)
@@ -273,7 +274,8 @@ struct hotkey create_eventkey(CGEventRef event)
 {
     struct hotkey eventkey = {
         .key = CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode),
-        .flags = cgevent_flags_to_hotkey_flags(CGEventGetFlags(event))
+        .flags = cgevent_flags_to_hotkey_flags(CGEventGetFlags(event)),
+        .button = CGEventGetIntegerValueField(event, kCGMouseEventButtonNumber),
     };
     return eventkey;
 }
@@ -289,7 +291,6 @@ bool intercept_systemkey(CGEventRef event, struct hotkey *eventkey)
 
     bool result = ((key_state == NX_KEYDOWN) &&
                    (key_stype == NX_SUBTYPE_AUX_CONTROL_BUTTONS));
-
     if (result) {
         eventkey->key = key_code;
         eventkey->flags = cgevent_flags_to_hotkey_flags(CGEventGetFlags(event)) | Hotkey_Flag_NX;

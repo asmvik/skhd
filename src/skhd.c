@@ -139,9 +139,13 @@ static EVENT_TAP_CALLBACK(key_observer_handler)
         CGEventTapEnable(event_tap->handle, 1);
     } break;
     case kCGEventKeyDown:
-    case kCGEventFlagsChanged: {
+    case kCGEventFlagsChanged:
+    case kCGEventLeftMouseDown:
+    case kCGEventRightMouseDown:
+    case kCGEventOtherMouseDown: {
         uint32_t flags = CGEventGetFlags(event);
         uint32_t keycode = CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
+        uint32_t button = CGEventGetIntegerValueField(event, kCGMouseEventButtonNumber);
 
         if (keycode == kVK_ANSI_C && flags & 0x40000) {
             exit(0);
@@ -151,6 +155,7 @@ static EVENT_TAP_CALLBACK(key_observer_handler)
         for (int i = 31; i >= 0; --i) {
             printf("%c", (flags & (1 << i)) ? '1' : '0');
         }
+        printf("\tbutton: %d", button);
         fflush(stdout);
 
         return NULL;
@@ -168,7 +173,10 @@ static EVENT_TAP_CALLBACK(key_handler)
         struct event_tap *event_tap = (struct event_tap *) reference;
         CGEventTapEnable(event_tap->handle, 1);
     } break;
-    case kCGEventKeyDown: {
+    case kCGEventKeyDown:
+    case kCGEventLeftMouseDown:
+    case kCGEventRightMouseDown:
+    case kCGEventOtherMouseDown: {
         if (table_find(&blacklst, carbon.process_name)) return event;
         if (!current_mode) return event;
 
@@ -343,7 +351,10 @@ static bool parse_arguments(int argc, char **argv)
         } break;
         case 'o': {
             event_tap.mask = (1 << kCGEventKeyDown) |
-                             (1 << kCGEventFlagsChanged);
+                             (1 << kCGEventFlagsChanged) |
+                             (1 << kCGEventLeftMouseDown) |
+                             (1 << kCGEventRightMouseDown) |
+                             (1 << kCGEventOtherMouseDown);
             event_tap_begin(&event_tap, key_observer_handler);
             CFRunLoopRun();
         } break;
@@ -511,7 +522,11 @@ int main(int argc, char **argv)
     END_SCOPED_TIMED_BLOCK();
 
     BEGIN_SCOPED_TIMED_BLOCK("begin_eventtap");
-    event_tap.mask = (1 << kCGEventKeyDown) | (1 << NX_SYSDEFINED);
+    event_tap.mask = (1 << kCGEventKeyDown) |
+                     (1 << NX_SYSDEFINED) |
+                     (1 << kCGEventLeftMouseDown) |
+                     (1 << kCGEventRightMouseDown) |
+                     (1 << kCGEventOtherMouseDown);
     event_tap_begin(&event_tap, key_handler);
     END_SCOPED_TIMED_BLOCK();
     END_SCOPED_TIMED_BLOCK();

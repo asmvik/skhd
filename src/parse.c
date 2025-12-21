@@ -71,6 +71,14 @@ keycode_from_hex(char *hex)
     return result;
 }
 
+static uint8_t
+button_number_from_name(char *name)
+{
+    uint8_t result;
+    sscanf(name, "m%hhu", &result);
+    return result;
+}
+
 static void
 parse_command(struct parser *parser, struct hotkey *hotkey)
 {
@@ -199,6 +207,21 @@ parse_key_literal(struct parser *parser, struct hotkey *hotkey)
     }
 }
 
+static uint8_t
+parse_button(struct parser *parser)
+{
+    struct token button = parser_previous(parser);
+    for (uint8_t i = 0; i < 3; ++i) {
+        if (token_equals(button, mouse_button_str[i])) {
+            debug("\tbutton: '%hhu'\n", i);
+            return i;
+        }
+    }
+    uint8_t button_number = button_number_from_name(button.text);
+    debug("\tbutton: '%hhu'\n", button_number);
+    return button_number;
+}
+
 static enum hotkey_flag modifier_flags_value[] =
 {
     Hotkey_Flag_Alt,        Hotkey_Flag_LAlt,       Hotkey_Flag_RAlt,
@@ -266,6 +289,7 @@ parse_hotkey(struct parser *parser)
 {
     struct hotkey *hotkey = malloc(sizeof(struct hotkey));
     memset(hotkey, 0, sizeof(struct hotkey));
+    hotkey->button = -1;
     bool found_modifier;
 
     debug("hotkey :: #%d {\n", parser->current_token.line);
@@ -306,6 +330,8 @@ parse_hotkey(struct parser *parser)
         hotkey->key = parse_key_hex(parser);
     } else if (parser_match(parser, Token_Literal)) {
         parse_key_literal(parser, hotkey);
+    } else if (parser_match(parser, Token_Button)) {
+        hotkey->button = parse_button(parser);
     } else {
         parser_report_error(parser, parser_peek(parser), "expected key-literal\n");
         goto err;
@@ -477,7 +503,8 @@ bool parse_config(struct parser *parser)
             (parser_check(parser, Token_Modifier)) ||
             (parser_check(parser, Token_Literal)) ||
             (parser_check(parser, Token_Key_Hex)) ||
-            (parser_check(parser, Token_Key))) {
+            (parser_check(parser, Token_Key)) ||
+            (parser_check(parser, Token_Button))) {
             if ((hotkey = parse_hotkey(parser))) {
                 for (int i = 0; i < buf_len(hotkey->mode_list); ++i) {
                     mode = hotkey->mode_list[i];
@@ -508,9 +535,11 @@ parse_keypress(struct parser *parser)
     if ((parser_check(parser, Token_Modifier)) ||
         (parser_check(parser, Token_Literal)) ||
         (parser_check(parser, Token_Key_Hex)) ||
-        (parser_check(parser, Token_Key))) {
+        (parser_check(parser, Token_Key)) ||
+        (parser_check(parser, Token_Button))) {
         struct hotkey *hotkey = malloc(sizeof(struct hotkey));
         memset(hotkey, 0, sizeof(struct hotkey));
+        hotkey->button = -1;
         bool found_modifier;
 
         if ((found_modifier = parser_match(parser, Token_Modifier))) {
@@ -532,6 +561,8 @@ parse_keypress(struct parser *parser)
             hotkey->key = parse_key_hex(parser);
         } else if (parser_match(parser, Token_Literal)) {
             parse_key_literal(parser, hotkey);
+        } else if (parser_match(parser, Token_Button)) {
+            hotkey->button = parse_button(parser);
         } else {
             goto err;
         }

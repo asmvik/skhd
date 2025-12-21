@@ -72,6 +72,7 @@ struct hotkey
 {
     uint32_t flags;
     uint32_t key;
+    uint8_t button;
     char **process_name;
     char **command;
     char *wildcard_command;

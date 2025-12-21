@@ -123,6 +123,12 @@ resolve_identifier_type(struct token token)
         }
     }
 
+    for (int i = 0; i < array_count(mouse_button_str); ++i) {
+        if (token_equals(token, mouse_button_str[i])) {
+            return Token_Button;
+        }
+    }
+
     return Token_Identifier;
 }
 
