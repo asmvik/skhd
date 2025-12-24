@@ -183,6 +183,10 @@ General options that configure the behaviour of **skhd**:
 .load "/Users/Koe/.config/partial_skhdrc"
 .load "partial_skhdrc"
 
+# specify a glob pattern for files that should be included.
+
+.load_glob "../skhd.d/*.conf"
+
 # prevents skhd from monitoring events for listed processes.
 
 .blacklist [

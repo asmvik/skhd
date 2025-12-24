@@ -4,6 +4,7 @@
 #include "hotkey.h"
 #include "hashtable.h"
 
+#include <glob.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -440,6 +441,32 @@ void parse_option_load(struct parser *parser, struct token option)
     }));
 }
 
+void parse_option_load_glob(struct parser *parser, struct token option)
+{
+    struct token glob_pattern_token = parser_previous(parser);
+    char *pattern = copy_string_count(glob_pattern_token.text, glob_pattern_token.length);
+    debug("\t%s\n", pattern);
+
+    if (*pattern != '/') {
+        char *directory = file_directory(parser->file);
+
+        size_t directory_length = strlen(directory);
+        size_t pattern_length   = strlen(pattern);
+        size_t total_length     = directory_length + pattern_length + 2;
+
+        char *absolute_pattern = malloc(total_length * sizeof(char));
+        snprintf(absolute_pattern, total_length, "%s/%s", directory, pattern);
+        free(pattern);
+
+        pattern = absolute_pattern;
+    }
+
+    buf_push(parser->load_glob_directives, ((struct load_glob_directive) {
+        .pattern = pattern,
+        .option  = option
+    }));
+}
+
 void parse_option(struct parser *parser)
 {
     parser_match(parser, Token_Option);
@@ -459,6 +486,14 @@ void parse_option(struct parser *parser)
             debug("}\n");
         } else {
             parser_report_error(parser, option, "expected filename\n");
+        }
+    } else if (token_equals(option, "load_glob")) {
+        if (parser_match(parser, Token_String)) {
+            debug("load_glob :: #%d {\n", option.line);
+            parse_option_load_glob(parser, option);
+            debug("}\n");
+        } else {
+            parser_report_error(parser, option, "expected glob pattern\n");
         }
     } else {
         parser_report_error(parser, option, "invalid option specified\n");
@@ -625,6 +660,43 @@ void parser_do_directives(struct parser *parser, struct hotloader *hotloader, bo
         }
 
         free(load.file);
+    }
+    buf_free(parser->load_directives);
+
+    for (int i = 0; i < buf_len(parser->load_glob_directives); ++i) {
+        struct load_glob_directive load_glob = parser->load_glob_directives[i];
+
+        glob_t glob_result;
+    	int glob_err = glob(load_glob.pattern, 0, NULL, &glob_result);
+
+    	if (glob_err != 0 && errno != GLOB_NOMATCH) {
+        	globfree(&glob_result);
+        	free(load_glob.pattern);
+        	parser_report_error(parser, load_glob.option, "failed to expand glob pattern");
+        	return;
+    	}
+
+    	for (int j = 0; j < glob_result.gl_matchc; j++) {
+            struct parser directive_parser;
+            if (parser_init(&directive_parser, parser->mode_map, parser->blacklst, glob_result.gl_pathv[j])) {
+                if (!thwart_hotloader) {
+                    hotloader_add_file(hotloader, glob_result.gl_pathv[j]);
+                }
+
+                if (parse_config(&directive_parser)) {
+                    parser_do_directives(&directive_parser, hotloader, thwart_hotloader);
+                } else {
+                    error = true;
+                }
+
+                parser_destroy(&directive_parser);
+            } else {
+                warn("skhd: could not open file '%s' expanded from load_glob directive #%d:%d\n", glob_result.gl_pathv[j], load_glob.option.line, load_glob.option.cursor);
+            }
+    	}
+
+    	globfree(&glob_result);
+    	free(load_glob.pattern);
     }
     buf_free(parser->load_directives);
 
