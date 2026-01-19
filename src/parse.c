@@ -315,7 +315,16 @@ parse_hotkey(struct parser *parser)
         hotkey->flags |= Hotkey_Flag_Passthrough;
     }
 
-    if (parser_match(parser, Token_Command)) {
+    if (parser_match(parser, Token_Forward)) {
+        debug("  forward key stroke: {\n");
+        struct hotkey *forwarded = parse_keypress(parser);
+        if (!forwarded) {
+            parser_report_error(parser, parser_peek(parser), "expect keysym\n");
+            goto err;
+        }
+        hotkey->forwarded_hotkey = forwarded;
+        debug("  }\n");
+    } else if (parser_match(parser, Token_Command)) {
         parse_command(parser, hotkey);
     } else if (parser_match(parser, Token_BeginList)) {
         parse_process_command_list(parser, hotkey);

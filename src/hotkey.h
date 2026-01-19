@@ -76,6 +76,7 @@ struct hotkey
     char **command;
     char *wildcard_command;
     struct mode **mode_list;
+    struct hotkey *forwarded_hotkey;
 };
 
 static inline void

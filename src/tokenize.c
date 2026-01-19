@@ -218,6 +218,15 @@ get_token(struct tokenizer *tokenizer)
             token.type = Token_Command;
         }
     } break;
+    case '|': {
+        eat_whitespace(tokenizer);
+
+        token.text = tokenizer->at;
+        token.line = tokenizer->line;
+        token.cursor = tokenizer->cursor;
+
+        token.type = Token_Forward;
+    } break;
     default:  {
         if (c == '0' && *tokenizer->at == 'x') {
             advance(tokenizer);

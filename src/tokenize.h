@@ -43,6 +43,7 @@ enum token_type
     Token_Key,
 
     Token_Decl,
+    Token_Forward,
     Token_Comma,
     Token_Insert,
     Token_Plus,

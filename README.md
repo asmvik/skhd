@@ -23,6 +23,7 @@ list of features
 | blacklist applications     | [x]  |
 | use media-keys as hotkey   | [x]  |
 | synthesize a key-press     | [x]  |
+| noremap / key forwarding   | [x]  |
 
 ### Install
 
@@ -116,6 +117,7 @@ mode         = 'name of mode' | <mode> ',' <mode>
 action       = <keysym> '[' <proc_map_lst> ']' | <keysym> '->' '[' <proc_map_lst> ']'
                <keysym> ':' <command>          | <keysym> '->' ':' <command>
                <keysym> ';' <mode>             | <keysym> '->' ';' <mode>
+               <keysym> '|' <keysym>
 
 keysym       = <mod> '-' <key> | <key>
 
@@ -191,4 +193,12 @@ General options that configure the behaviour of **skhd**:
     "kitty"
     "google chrome"
 ]
+```
+
+Key forwarding (noremap like functionality):
+
+```
+# specify source key (left) and target key (right) to synthesize
+cmd - 1 : yabai -m space --focus 1
+ctrl - 1 | cmd - 1 # press `ctrl - 1` will be `cmd - 1`, bypassing `cmd - 1` command above
 ```

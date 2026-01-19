@@ -172,8 +172,11 @@ static EVENT_TAP_CALLBACK(key_handler)
         if (table_find(&blacklst, carbon.process_name)) return event;
         if (!current_mode) return event;
 
-        BEGIN_TIMED_BLOCK("handle_keypress");
         struct hotkey eventkey = create_eventkey(event);
+        if (find_and_forward_hotkey(&eventkey, current_mode, event)) {
+            return event;
+        }
+        BEGIN_TIMED_BLOCK("handle_keypress");
         bool result = find_and_exec_hotkey(&eventkey, &mode_map, &current_mode, &carbon);
         END_TIMED_BLOCK();
 
