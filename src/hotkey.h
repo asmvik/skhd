@@ -11,6 +11,25 @@
 #define Modifier_Keycode_Ctrl    0x3B
 #define Modifier_Keycode_Fn      0x3F
 
+#define Gesture_Keycode_Base               0x10000000
+#define Gesture_ThreeFingerSwipeLeft       (Gesture_Keycode_Base + 1)
+#define Gesture_ThreeFingerSwipeRight      (Gesture_Keycode_Base + 2)
+#define Gesture_ThreeFingerSwipeUp         (Gesture_Keycode_Base + 3)
+#define Gesture_ThreeFingerSwipeDown       (Gesture_Keycode_Base + 4)
+#define Gesture_ThreeFingerTap             (Gesture_Keycode_Base + 5)
+#define Gesture_FourFingerSwipeLeft        (Gesture_Keycode_Base + 6)
+#define Gesture_FourFingerSwipeRight       (Gesture_Keycode_Base + 7)
+#define Gesture_FourFingerSwipeUp          (Gesture_Keycode_Base + 8)
+#define Gesture_FourFingerSwipeDown        (Gesture_Keycode_Base + 9)
+#define Gesture_FiveFingerSwipeLeft        (Gesture_Keycode_Base + 10)
+#define Gesture_FiveFingerSwipeRight       (Gesture_Keycode_Base + 11)
+#define Gesture_FiveFingerSwipeUp          (Gesture_Keycode_Base + 12)
+#define Gesture_FiveFingerSwipeDown        (Gesture_Keycode_Base + 13)
+#define Gesture_FourFingerTap              (Gesture_Keycode_Base + 14)
+#define Gesture_FiveFingerTap              (Gesture_Keycode_Base + 15)
+#define Gesture_TipTapLeft                 (Gesture_Keycode_Base + 16)
+#define Gesture_TipTapRight                (Gesture_Keycode_Base + 17)
+
 enum osx_event_mask
 {
     Event_Mask_Alt      = 0x00080000,
@@ -105,6 +124,7 @@ unsigned long hash_hotkey(struct hotkey *a);
 
 struct hotkey create_eventkey(CGEventRef event);
 bool intercept_systemkey(CGEventRef event, struct hotkey *eventkey);
+uint32_t cgevent_flags_to_hotkey_flags(uint32_t eventflags);
 
 bool find_and_exec_hotkey(struct hotkey *k, struct table *t, struct mode **m, struct carbon_event *carbon);
 void free_mode_map(struct table *mode_map);

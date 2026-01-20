@@ -28,7 +28,18 @@ static const char *literal_keycode_str[] =
     "sound_up",        "sound_down",      "mute",
     "play",            "previous",        "next",
     "rewind",          "fast",            "brightness_up",
-    "brightness_down", "illumination_up", "illumination_down"
+    "brightness_down", "illumination_up", "illumination_down",
+
+    "three_finger_swipe_left", "three_finger_swipe_right",
+    "three_finger_swipe_up", "three_finger_swipe_down",
+    "three_finger_tap",
+    "four_finger_swipe_left", "four_finger_swipe_right",
+    "four_finger_swipe_up", "four_finger_swipe_down",
+    "four_finger_tap",
+    "five_finger_swipe_left", "five_finger_swipe_right",
+    "five_finger_swipe_up", "five_finger_swipe_down",
+    "five_finger_tap",
+    "tip_tap_left", "tip_tap_right"
 };
 
 enum token_type

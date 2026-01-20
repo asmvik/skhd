@@ -252,7 +252,7 @@ cgevent_lrmod_flag_to_hotkey_lrmod_flag(CGEventFlags eventflags, uint32_t *flags
     }
 }
 
-static uint32_t
+uint32_t
 cgevent_flags_to_hotkey_flags(uint32_t eventflags)
 {
     uint32_t flags = 0;
