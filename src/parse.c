@@ -152,8 +152,7 @@ parse_key(struct parser *parser)
 }
 
 #define KEY_HAS_IMPLICIT_FN_MOD  4
-#define KEY_NX_START             35
-#define KEY_NX_END               47
+#define KEY_HAS_IMPLICIT_NX_MOD 35
 static uint32_t literal_keycode_value[] =
 {
     kVK_Return,     kVK_Tab,           kVK_Space,
@@ -192,9 +191,9 @@ static inline void
 handle_implicit_literal_flags(struct hotkey *hotkey, int literal_index)
 {
     if ((literal_index > KEY_HAS_IMPLICIT_FN_MOD) &&
-        (literal_index < KEY_NX_START)) {
+        (literal_index < KEY_HAS_IMPLICIT_NX_MOD)) {
         hotkey->flags |= Hotkey_Flag_Fn;
-    } else if (literal_index >= KEY_NX_START && literal_index < KEY_NX_END) {
+    } else if (literal_index >= KEY_HAS_IMPLICIT_NX_MOD) {
         hotkey->flags |= Hotkey_Flag_NX;
     }
 }
