@@ -44,6 +44,32 @@ static MTPoint touch_start_pos_five;
 static double touch_start_time_five;
 static float touch_max_delta_five;
 
+static void
+reset_touch_state(void)
+{
+	touch_tracking = false;
+	touch_fired = false;
+	touch_start_pos = (MTPoint) { 0 };
+	touch_start_time = 0.0;
+	touch_max_delta = 0.0f;
+
+	touch_tracking_two = false;
+	touch_fired_two = false;
+	touch_start_pos_two = (MTPoint) { 0 };
+
+	touch_tracking_four = false;
+	touch_fired_four = false;
+	touch_start_pos_four = (MTPoint) { 0 };
+	touch_start_time_four = 0.0;
+	touch_max_delta_four = 0.0f;
+
+	touch_tracking_five = false;
+	touch_fired_five = false;
+	touch_start_pos_five = (MTPoint) { 0 };
+	touch_start_time_five = 0.0;
+	touch_max_delta_five = 0.0f;
+}
+
 static inline uint32_t
 current_modifier_flags(void)
 {
@@ -360,13 +386,31 @@ bool touch_begin(struct table *mode_map, struct table *blacklst, struct mode **c
 	}
 
 	MTRegisterContactFrameCallback(touch_device, touch_callback);
-	MTDeviceStart(touch_device, 0);
+	if (!MTDeviceIsValid(touch_device)) {
+		warn("failed to register multitouch callback.. touch gestures disabled\n");
+		MTDeviceRelease(touch_device);
+		touch_device = NULL;
+		reset_touch_state();
+		return false;
+	}
 
+	OSStatus start_status = MTDeviceStart(touch_device, 0);
+	if (start_status != noErr) {
+		warn("could not start multitouch device (%d).. touch gestures disabled\n", (int) start_status);
+		MTUnregisterContactFrameCallback(touch_device, touch_callback);
+		MTDeviceRelease(touch_device);
+		touch_device = NULL;
+		reset_touch_state();
+		return false;
+	}
+
+	if (device_list) CFRelease(device_list);
 	return true;
 }
 
 void touch_end(void)
 {
+	reset_touch_state();
 	if (!touch_device) return;
 	MTUnregisterContactFrameCallback(touch_device, touch_callback);
 	MTDeviceStop(touch_device);
