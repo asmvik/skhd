@@ -127,7 +127,7 @@ unsigned long hash_hotkey(struct hotkey *a);
 
 struct hotkey create_eventkey(CGEventRef event);
 bool intercept_systemkey(CGEventRef event, struct hotkey *eventkey);
-uint32_t cgevent_flags_to_hotkey_flags(uint32_t eventflags);
+static uint32_t cgevent_flags_to_hotkey_flags(uint32_t eventflags);
 
 bool find_and_exec_hotkey(struct hotkey *k, struct table *t, struct mode **m, struct carbon_event *carbon);
 void free_mode_map(struct table *mode_map);
