@@ -14,11 +14,6 @@
 #define THREE_FINGER_SWIPE_AXIS_RATIO   1.45f
 #define THREE_FINGER_TAP_MAX_DURATION   0.18
 #define THREE_FINGER_TAP_MAX_MOVEMENT   0.04f
-#define TIP_TAP_MAX_DURATION            0.10
-#define TIP_TAP_HOLD_MAX_MOVEMENT       0.08f
-#define TIP_TAP_TAP_MAX_MOVEMENT        0.03f
-#define TIP_TAP_MIN_OFFSET              0.04f
-#define TIP_TAP_AXIS_RATIO              0.30f
 
 struct touch_context
 {
@@ -35,6 +30,9 @@ static bool touch_fired;
 static MTPoint touch_start_pos;
 static double touch_start_time;
 static float touch_max_delta;
+static bool touch_tracking_two;
+static bool touch_fired_two;
+static MTPoint touch_start_pos_two;
 static bool touch_tracking_four;
 static bool touch_fired_four;
 static MTPoint touch_start_pos_four;
@@ -45,20 +43,6 @@ static bool touch_fired_five;
 static MTPoint touch_start_pos_five;
 static double touch_start_time_five;
 static float touch_max_delta_five;
-static enum {
-	TipTapState_Idle = 0,
-	TipTapState_TwoFingersDown,
-	TipTapState_ThreeFingersDown
-} tip_tap_state;
-static MTPoint tip_tap_two_finger_pos;
-static MTPoint tip_tap_three_finger_pos_1;
-static MTPoint tip_tap_three_finger_pos_2;
-static MTPoint tip_tap_three_finger_pos_3;
-static double tip_tap_two_finger_start_time;
-static double tip_tap_three_fingers_start_time;
-static float tip_tap_two_finger_max_delta;
-static float tip_tap_tap_max_delta;
-static bool tip_tap_gesture_fired;
 
 static inline uint32_t
 current_modifier_flags(void)
@@ -123,54 +107,7 @@ get_average_position(MTTouch *data, size_t nFingers, MTPoint *out_pos)
 	}
 }
 
-static inline void
-get_two_finger_positions(MTTouch *data, size_t nFingers, MTPoint *pos1, MTPoint *pos2)
-{
-	int found = 0;
-	for (size_t i = 0; i < nFingers && found < 2; ++i) {
-		if (touch_state_is_present(data[i].state)) {
-			if (found == 0) {
-				*pos1 = data[i].normalizedVector.position;
-			} else {
-				*pos2 = data[i].normalizedVector.position;
-			}
-			++found;
-		}
-	}
-}
 
-static inline void
-get_three_finger_positions(MTTouch *data, size_t nFingers, MTPoint *pos1, MTPoint *pos2, MTPoint *pos3)
-{
-	int found = 0;
-	for (size_t i = 0; i < nFingers && found < 3; ++i) {
-		if (touch_state_is_present(data[i].state)) {
-			if (found == 0) {
-				*pos1 = data[i].normalizedVector.position;
-			} else if (found == 1) {
-				*pos2 = data[i].normalizedVector.position;
-			} else {
-				*pos3 = data[i].normalizedVector.position;
-			}
-			++found;
-		}
-	}
-}
-
-static inline void
-reset_tip_tap_state(void)
-{
-	tip_tap_state = TipTapState_Idle;
-	tip_tap_two_finger_pos = (MTPoint){0};
-	tip_tap_three_finger_pos_1 = (MTPoint){0};
-	tip_tap_three_finger_pos_2 = (MTPoint){0};
-	tip_tap_three_finger_pos_3 = (MTPoint){0};
-	tip_tap_two_finger_start_time = 0.0;
-	tip_tap_three_fingers_start_time = 0.0;
-	tip_tap_two_finger_max_delta = 0.0f;
-	tip_tap_tap_max_delta = 0.0f;
-	tip_tap_gesture_fired = false;
-}
 
 static void
 touch_callback(MTDeviceRef device, MTTouch *data, size_t nFingers, double timestamp, size_t frame)
@@ -179,7 +116,7 @@ touch_callback(MTDeviceRef device, MTTouch *data, size_t nFingers, double timest
 	(void) timestamp;
 	(void) frame;
 
-	if (nFingers != 3 && nFingers != 4 && nFingers != 5) {
+	if (nFingers != 2 && nFingers != 3 && nFingers != 4 && nFingers != 5) {
 		if (touch_tracking && !touch_fired) {
 			double duration = timestamp - touch_start_time;
 			if (duration <= THREE_FINGER_TAP_MAX_DURATION &&
@@ -203,106 +140,13 @@ touch_callback(MTDeviceRef device, MTTouch *data, size_t nFingers, double timest
 		}
 		touch_tracking = false;
 		touch_fired = false;
+		touch_tracking_two = false;
+		touch_fired_two = false;
 		touch_tracking_four = false;
 		touch_fired_four = false;
 		touch_tracking_five = false;
 		touch_fired_five = false;
-	}
-
-	if (nFingers <= 3) {
-		if (nFingers == 0 && tip_tap_gesture_fired) {
-			reset_tip_tap_state();
-			return;
-		}
-		if (tip_tap_gesture_fired && nFingers > 0) {
-			return;
-		}
-		switch (tip_tap_state) {
-			case TipTapState_Idle: {
-				if (nFingers == 2) {
-					get_average_position(data, nFingers, &tip_tap_two_finger_pos);
-					tip_tap_two_finger_start_time = timestamp;
-					tip_tap_two_finger_max_delta = 0.0f;
-					tip_tap_state = TipTapState_TwoFingersDown;
-				}
-				break;
-			}
-
-			case TipTapState_TwoFingersDown: {
-				if (nFingers == 0) {
-					reset_tip_tap_state();
-				} else if (nFingers == 2) {
-					MTPoint current_pos;
-					get_average_position(data, nFingers, &current_pos);
-					float dx = current_pos.x - tip_tap_two_finger_pos.x;
-					float dy = current_pos.y - tip_tap_two_finger_pos.y;
-					float abs_dx = fabsf(dx);
-					float abs_dy = fabsf(dy);
-					if (abs_dx > tip_tap_two_finger_max_delta) tip_tap_two_finger_max_delta = abs_dx;
-					if (abs_dy > tip_tap_two_finger_max_delta) tip_tap_two_finger_max_delta = abs_dy;
-					if (tip_tap_two_finger_max_delta > TIP_TAP_HOLD_MAX_MOVEMENT) {
-						reset_tip_tap_state();
-					}
-				} else if (nFingers == 3) {
-					get_three_finger_positions(data, nFingers, &tip_tap_three_finger_pos_1, &tip_tap_three_finger_pos_2, &tip_tap_three_finger_pos_3);
-					tip_tap_three_fingers_start_time = timestamp;
-					tip_tap_tap_max_delta = 0.0f;
-					tip_tap_state = TipTapState_ThreeFingersDown;
-				}
-				break;
-			}
-
-			case TipTapState_ThreeFingersDown: {
-				if (nFingers == 0) {
-					reset_tip_tap_state();
-				} else if (nFingers == 2) {
-					reset_tip_tap_state();
-				} else if (nFingers == 3) {
-					MTPoint pos1, pos2, pos3;
-					get_three_finger_positions(data, nFingers, &pos1, &pos2, &pos3);
-					float dx1 = pos1.x - tip_tap_three_finger_pos_1.x;
-					float dy1 = pos1.y - tip_tap_three_finger_pos_1.y;
-					float dx2 = pos2.x - tip_tap_three_finger_pos_2.x;
-					float dy2 = pos2.y - tip_tap_three_finger_pos_2.y;
-					float dx3 = pos3.x - tip_tap_three_finger_pos_3.x;
-					float dy3 = pos3.y - tip_tap_three_finger_pos_3.y;
-					float max_dx = fmaxf(fmaxf(fabsf(dx1), fabsf(dx2)), fabsf(dx3));
-					float max_dy = fmaxf(fmaxf(fabsf(dy1), fabsf(dy2)), fabsf(dy3));
-					float max_delta = fmaxf(max_dx, max_dy);
-					if (max_delta > tip_tap_tap_max_delta) tip_tap_tap_max_delta = max_delta;
-					if (tip_tap_tap_max_delta > TIP_TAP_TAP_MAX_MOVEMENT ||
-						timestamp - tip_tap_three_fingers_start_time > TIP_TAP_MAX_DURATION) {
-						float d1 = fabsf(tip_tap_three_finger_pos_1.x - tip_tap_two_finger_pos.x) + fabsf(tip_tap_three_finger_pos_1.y - tip_tap_two_finger_pos.y);
-						float d2 = fabsf(tip_tap_three_finger_pos_2.x - tip_tap_two_finger_pos.x) + fabsf(tip_tap_three_finger_pos_2.y - tip_tap_two_finger_pos.y);
-						float d3 = fabsf(tip_tap_three_finger_pos_3.x - tip_tap_two_finger_pos.x) + fabsf(tip_tap_three_finger_pos_3.y - tip_tap_two_finger_pos.y);
-						MTPoint tap_pos;
-						if (d1 > d2 && d1 > d3) {
-							tap_pos = tip_tap_three_finger_pos_1;
-						} else if (d2 > d3) {
-							tap_pos = tip_tap_three_finger_pos_2;
-						} else {
-							tap_pos = tip_tap_three_finger_pos_3;
-						}
-						float delta_x = tap_pos.x - tip_tap_two_finger_pos.x;
-						float delta_y = tap_pos.y - tip_tap_two_finger_pos.y;
-						float abs_dx = fabsf(delta_x);
-						float abs_dy = fabsf(delta_y);
-						if (abs_dx >= TIP_TAP_MIN_OFFSET &&
-							abs_dx > abs_dy * TIP_TAP_AXIS_RATIO) {
-							dispatch_gesture(delta_x < 0.0f ? Gesture_TipTapLeft : Gesture_TipTapRight);
-							tip_tap_gesture_fired = true;
-						}
-						reset_tip_tap_state();
-					}
-				}
-				break;
-			}
-		}
 		return;
-	}
-
-	if (tip_tap_state != TipTapState_Idle) {
-		reset_tip_tap_state();
 	}
 
 	float sum_x = 0.0f;
@@ -324,7 +168,7 @@ touch_callback(MTDeviceRef device, MTTouch *data, size_t nFingers, double timest
 		++active;
 	}
 
-	if (nFingers >= 3 && active != (int)nFingers) return;
+	if (nFingers >= 2 && active != (int)nFingers) return;
 
 	float inv = 1.0f / (float) nFingers;
 	MTPoint avg_pos = {
@@ -337,7 +181,50 @@ touch_callback(MTDeviceRef device, MTTouch *data, size_t nFingers, double timest
 		.y = sum_vy * inv
 	};
 
-	if (nFingers == 3) {
+	if (nFingers != 2) {
+		touch_tracking_two = false;
+		touch_fired_two = false;
+	}
+
+	if (nFingers == 2) {
+		if (!touch_tracking_two) {
+			touch_tracking_two = true;
+			touch_fired_two = false;
+			touch_start_pos_two = avg_pos;
+			return;
+		}
+
+		if (touch_fired_two) return;
+
+		float delta_x = avg_pos.x - touch_start_pos_two.x;
+		float delta_y = avg_pos.y - touch_start_pos_two.y;
+
+		if (delta_x < -THREE_FINGER_SWIPE_MIN_DISTANCE &&
+			fabsf(delta_x) > fabsf(delta_y) * THREE_FINGER_SWIPE_AXIS_RATIO &&
+			avg_vel.x < -THREE_FINGER_SWIPE_MIN_VELOCITY &&
+			fabsf(avg_vel.x) > fabsf(avg_vel.y) * THREE_FINGER_SWIPE_AXIS_RATIO) {
+			touch_fired_two = true;
+			dispatch_gesture(Gesture_TwoFingerSwipeLeft);
+		} else if (delta_x > THREE_FINGER_SWIPE_MIN_DISTANCE &&
+			fabsf(delta_x) > fabsf(delta_y) * THREE_FINGER_SWIPE_AXIS_RATIO &&
+			avg_vel.x > THREE_FINGER_SWIPE_MIN_VELOCITY &&
+			fabsf(avg_vel.x) > fabsf(avg_vel.y) * THREE_FINGER_SWIPE_AXIS_RATIO) {
+			touch_fired_two = true;
+			dispatch_gesture(Gesture_TwoFingerSwipeRight);
+		} else if (delta_y < -THREE_FINGER_SWIPE_MIN_DISTANCE &&
+			fabsf(delta_y) > fabsf(delta_x) * THREE_FINGER_SWIPE_AXIS_RATIO &&
+			avg_vel.y < -THREE_FINGER_SWIPE_MIN_VELOCITY &&
+			fabsf(avg_vel.y) > fabsf(avg_vel.x) * THREE_FINGER_SWIPE_AXIS_RATIO) {
+			touch_fired_two = true;
+			dispatch_gesture(Gesture_TwoFingerSwipeDown);
+		} else if (delta_y > THREE_FINGER_SWIPE_MIN_DISTANCE &&
+			fabsf(delta_y) > fabsf(delta_x) * THREE_FINGER_SWIPE_AXIS_RATIO &&
+			avg_vel.y > THREE_FINGER_SWIPE_MIN_VELOCITY &&
+			fabsf(avg_vel.y) > fabsf(avg_vel.x) * THREE_FINGER_SWIPE_AXIS_RATIO) {
+			touch_fired_two = true;
+			dispatch_gesture(Gesture_TwoFingerSwipeUp);
+		}
+	} else if (nFingers == 3) {
 		if (!touch_tracking) {
 			touch_tracking = true;
 			touch_fired = false;
