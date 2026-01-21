@@ -152,7 +152,7 @@ parse_key(struct parser *parser)
 }
 
 #define KEY_HAS_IMPLICIT_FN_MOD  4
-#define KEY_HAS_IMPLICIT_NX_MOD 35
+#define KEY_HAS_IMPLICIT_NX_MOD  35
 static uint32_t literal_keycode_value[] =
 {
     kVK_Return,     kVK_Tab,           kVK_Space,
