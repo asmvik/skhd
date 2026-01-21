@@ -152,7 +152,8 @@ parse_key(struct parser *parser)
 }
 
 #define KEY_HAS_IMPLICIT_FN_MOD  4
-#define KEY_HAS_IMPLICIT_NX_MOD  35
+#define KEY_NX_START             35
+#define KEY_NX_END               47
 static uint32_t literal_keycode_value[] =
 {
     kVK_Return,     kVK_Tab,           kVK_Space,
@@ -171,16 +172,29 @@ static uint32_t literal_keycode_value[] =
     NX_KEYTYPE_SOUND_UP,        NX_KEYTYPE_SOUND_DOWN,      NX_KEYTYPE_MUTE,
     NX_KEYTYPE_PLAY,            NX_KEYTYPE_PREVIOUS,        NX_KEYTYPE_NEXT,
     NX_KEYTYPE_REWIND,          NX_KEYTYPE_FAST,            NX_KEYTYPE_BRIGHTNESS_UP,
-    NX_KEYTYPE_BRIGHTNESS_DOWN, NX_KEYTYPE_ILLUMINATION_UP, NX_KEYTYPE_ILLUMINATION_DOWN
+    NX_KEYTYPE_BRIGHTNESS_DOWN, NX_KEYTYPE_ILLUMINATION_UP, NX_KEYTYPE_ILLUMINATION_DOWN,
+
+    Gesture_TwoFingerSwipeLeft, Gesture_TwoFingerSwipeRight,
+    Gesture_TwoFingerSwipeUp, Gesture_TwoFingerSwipeDown,
+    Gesture_TwoFingerTap,
+    Gesture_ThreeFingerSwipeLeft, Gesture_ThreeFingerSwipeRight,
+    Gesture_ThreeFingerSwipeUp, Gesture_ThreeFingerSwipeDown,
+    Gesture_ThreeFingerTap,
+    Gesture_FourFingerSwipeLeft, Gesture_FourFingerSwipeRight,
+    Gesture_FourFingerSwipeUp, Gesture_FourFingerSwipeDown,
+    Gesture_FourFingerTap,
+    Gesture_FiveFingerSwipeLeft, Gesture_FiveFingerSwipeRight,
+    Gesture_FiveFingerSwipeUp, Gesture_FiveFingerSwipeDown,
+    Gesture_FiveFingerTap
 };
 
 static inline void
 handle_implicit_literal_flags(struct hotkey *hotkey, int literal_index)
 {
     if ((literal_index > KEY_HAS_IMPLICIT_FN_MOD) &&
-        (literal_index < KEY_HAS_IMPLICIT_NX_MOD)) {
+        (literal_index < KEY_NX_START)) {
         hotkey->flags |= Hotkey_Flag_Fn;
-    } else if (literal_index >= KEY_HAS_IMPLICIT_NX_MOD) {
+    } else if (literal_index >= KEY_NX_START && literal_index < KEY_NX_END) {
         hotkey->flags |= Hotkey_Flag_NX;
     }
 }

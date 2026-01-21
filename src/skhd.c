@@ -28,6 +28,7 @@
 #include "hotkey.h"
 #include "synthesize.h"
 #include "service.h"
+#include "touch.h"
 
 #include "hotload.c"
 #include "event_tap.c"
@@ -38,6 +39,7 @@
 #include "hotkey.c"
 #include "synthesize.c"
 #include "notify.c"
+#include "touch.c"
 
 extern void NSApplicationLoad(void);
 extern CFDictionaryRef CGSCopyCurrentSessionDictionary(void);
@@ -514,6 +516,8 @@ int main(int argc, char **argv)
     event_tap.mask = (1 << kCGEventKeyDown) | (1 << NX_SYSDEFINED);
     event_tap_begin(&event_tap, key_handler);
     END_SCOPED_TIMED_BLOCK();
+
+    touch_begin(&mode_map, &blacklst, &current_mode, &carbon);
     END_SCOPED_TIMED_BLOCK();
 
     NSApplicationLoad();
