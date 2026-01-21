@@ -40,7 +40,8 @@ static const char *literal_keycode_str[] =
     "four_finger_tap",
     "five_finger_swipe_left", "five_finger_swipe_right",
     "five_finger_swipe_up", "five_finger_swipe_down",
-    "five_finger_tap"
+    "five_finger_tap",
+    "two_finger_tap"
 };
 
 enum token_type

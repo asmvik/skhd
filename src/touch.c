@@ -23,51 +23,29 @@ struct touch_context
 	struct carbon_event *carbon;
 };
 
+struct swipe_state
+{
+	bool tracking;
+	bool fired;
+	MTPoint start_pos;
+	double start_time;
+	float max_delta;
+};
+
 static struct touch_context touch_ctx;
 static MTDeviceRef touch_device;
-static bool touch_tracking;
-static bool touch_fired;
-static MTPoint touch_start_pos;
-static double touch_start_time;
-static float touch_max_delta;
-static bool touch_tracking_two;
-static bool touch_fired_two;
-static MTPoint touch_start_pos_two;
-static bool touch_tracking_four;
-static bool touch_fired_four;
-static MTPoint touch_start_pos_four;
-static double touch_start_time_four;
-static float touch_max_delta_four;
-static bool touch_tracking_five;
-static bool touch_fired_five;
-static MTPoint touch_start_pos_five;
-static double touch_start_time_five;
-static float touch_max_delta_five;
+static struct swipe_state swipe_two;
+static struct swipe_state swipe_three;
+static struct swipe_state swipe_four;
+static struct swipe_state swipe_five;
 
 static void
 reset_touch_state(void)
 {
-	touch_tracking = false;
-	touch_fired = false;
-	touch_start_pos = (MTPoint) { 0 };
-	touch_start_time = 0.0;
-	touch_max_delta = 0.0f;
-
-	touch_tracking_two = false;
-	touch_fired_two = false;
-	touch_start_pos_two = (MTPoint) { 0 };
-
-	touch_tracking_four = false;
-	touch_fired_four = false;
-	touch_start_pos_four = (MTPoint) { 0 };
-	touch_start_time_four = 0.0;
-	touch_max_delta_four = 0.0f;
-
-	touch_tracking_five = false;
-	touch_fired_five = false;
-	touch_start_pos_five = (MTPoint) { 0 };
-	touch_start_time_five = 0.0;
-	touch_max_delta_five = 0.0f;
+	swipe_two = (struct swipe_state) { 0 };
+	swipe_three = (struct swipe_state) { 0 };
+	swipe_four = (struct swipe_state) { 0 };
+	swipe_five = (struct swipe_state) { 0 };
 }
 
 static inline uint32_t
@@ -102,6 +80,56 @@ touch_state_is_active(MTTouchState state)
 		   state == MTTouchStateLingerInRange;
 }
 
+static inline void
+handle_swipe_multi(struct swipe_state *state, double timestamp, MTPoint avg_pos, MTPoint avg_vel,
+			    uint32_t gesture_left, uint32_t gesture_right,
+			    uint32_t gesture_down, uint32_t gesture_up)
+{
+	if (!state->tracking) {
+		state->tracking = true;
+		state->fired = false;
+		state->start_pos = avg_pos;
+		state->start_time = timestamp;
+		state->max_delta = 0.0f;
+		return;
+	}
+
+	if (state->fired) return;
+
+	float delta_x = avg_pos.x - state->start_pos.x;
+	float delta_y = avg_pos.y - state->start_pos.y;
+	float abs_dx = fabsf(delta_x);
+	float abs_dy = fabsf(delta_y);
+	if (abs_dx > state->max_delta) state->max_delta = abs_dx;
+	if (abs_dy > state->max_delta) state->max_delta = abs_dy;
+
+	if (delta_x < -SWIPE_MIN_DISTANCE &&
+		fabsf(delta_x) > fabsf(delta_y) * SWIPE_AXIS_RATIO &&
+		avg_vel.x < -SWIPE_MIN_VELOCITY &&
+		fabsf(avg_vel.x) > fabsf(avg_vel.y) * SWIPE_AXIS_RATIO) {
+		state->fired = true;
+		dispatch_gesture(gesture_left);
+	} else if (delta_x > SWIPE_MIN_DISTANCE &&
+		fabsf(delta_x) > fabsf(delta_y) * SWIPE_AXIS_RATIO &&
+		avg_vel.x > SWIPE_MIN_VELOCITY &&
+		fabsf(avg_vel.x) > fabsf(avg_vel.y) * SWIPE_AXIS_RATIO) {
+		state->fired = true;
+		dispatch_gesture(gesture_right);
+	} else if (delta_y < -SWIPE_MIN_DISTANCE &&
+		fabsf(delta_y) > fabsf(delta_x) * SWIPE_AXIS_RATIO &&
+		avg_vel.y < -SWIPE_MIN_VELOCITY &&
+		fabsf(avg_vel.y) > fabsf(avg_vel.x) * SWIPE_AXIS_RATIO) {
+		state->fired = true;
+		dispatch_gesture(gesture_down);
+	} else if (delta_y > SWIPE_MIN_DISTANCE &&
+		fabsf(delta_y) > fabsf(delta_x) * SWIPE_AXIS_RATIO &&
+		avg_vel.y > SWIPE_MIN_VELOCITY &&
+		fabsf(avg_vel.y) > fabsf(avg_vel.x) * SWIPE_AXIS_RATIO) {
+		state->fired = true;
+		dispatch_gesture(gesture_up);
+	}
+}
+
 static void
 touch_callback(MTDeviceRef device, MTTouch *data, size_t nFingers, double timestamp, size_t frame)
 {
@@ -109,36 +137,36 @@ touch_callback(MTDeviceRef device, MTTouch *data, size_t nFingers, double timest
 	(void) timestamp;
 	(void) frame;
 
-	if (nFingers != 2 && nFingers != 3 && nFingers != 4 && nFingers != 5) {
-		if (touch_tracking && !touch_fired) {
-			double duration = timestamp - touch_start_time;
+	if (nFingers != 2 && nFingers != 3 && nFingers != 4 && nFingers != 5) { // Fingers lifted
+		if (swipe_two.tracking && !swipe_two.fired) {
+			double duration = timestamp - swipe_two.start_time;
 			if (duration <= TAP_MAX_DURATION &&
-				touch_max_delta <= TAP_MAX_MOVEMENT) {
+				swipe_two.max_delta <= TAP_MAX_MOVEMENT) {
+				dispatch_gesture(Gesture_TwoFingerTap);
+			}
+		}
+		if (swipe_three.tracking && !swipe_three.fired) {
+			double duration = timestamp - swipe_three.start_time;
+			if (duration <= TAP_MAX_DURATION &&
+				swipe_three.max_delta <= TAP_MAX_MOVEMENT) {
 				dispatch_gesture(Gesture_ThreeFingerTap);
 			}
 		}
-		if (touch_tracking_four && !touch_fired_four) {
-			double duration = timestamp - touch_start_time_four;
+		if (swipe_four.tracking && !swipe_four.fired) {
+			double duration = timestamp - swipe_four.start_time;
 			if (duration <= TAP_MAX_DURATION &&
-				touch_max_delta_four <= TAP_MAX_MOVEMENT) {
+				swipe_four.max_delta <= TAP_MAX_MOVEMENT) {
 				dispatch_gesture(Gesture_FourFingerTap);
 			}
 		}
-		if (touch_tracking_five && !touch_fired_five) {
-			double duration = timestamp - touch_start_time_five;
+		if (swipe_five.tracking && !swipe_five.fired) {
+			double duration = timestamp - swipe_five.start_time;
 			if (duration <= TAP_MAX_DURATION &&
-				touch_max_delta_five <= TAP_MAX_MOVEMENT) {
+				swipe_five.max_delta <= TAP_MAX_MOVEMENT) {
 				dispatch_gesture(Gesture_FiveFingerTap);
 			}
 		}
-		touch_tracking = false;
-		touch_fired = false;
-		touch_tracking_two = false;
-		touch_fired_two = false;
-		touch_tracking_four = false;
-		touch_fired_four = false;
-		touch_tracking_five = false;
-		touch_fired_five = false;
+		reset_touch_state();
 		return;
 	}
 
@@ -171,180 +199,26 @@ touch_callback(MTDeviceRef device, MTTouch *data, size_t nFingers, double timest
 	};
 
 	if (nFingers != 2) {
-		touch_tracking_two = false;
-		touch_fired_two = false;
+		swipe_two.tracking = false;
+		swipe_two.fired = false;
 	}
 
 	if (nFingers == 2) {
-		if (!touch_tracking_two) {
-			touch_tracking_two = true;
-			touch_fired_two = false;
-			touch_start_pos_two = avg_pos;
-			return;
-		}
-
-		if (touch_fired_two) return;
-
-		float delta_x = avg_pos.x - touch_start_pos_two.x;
-		float delta_y = avg_pos.y - touch_start_pos_two.y;
-
-		if (delta_x < -SWIPE_MIN_DISTANCE &&
-			fabsf(delta_x) > fabsf(delta_y) * SWIPE_AXIS_RATIO &&
-			avg_vel.x < -SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.x) > fabsf(avg_vel.y) * SWIPE_AXIS_RATIO) {
-			touch_fired_two = true;
-			dispatch_gesture(Gesture_TwoFingerSwipeLeft);
-		} else if (delta_x > SWIPE_MIN_DISTANCE &&
-			fabsf(delta_x) > fabsf(delta_y) * SWIPE_AXIS_RATIO &&
-			avg_vel.x > SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.x) > fabsf(avg_vel.y) * SWIPE_AXIS_RATIO) {
-			touch_fired_two = true;
-			dispatch_gesture(Gesture_TwoFingerSwipeRight);
-		} else if (delta_y < -SWIPE_MIN_DISTANCE &&
-			fabsf(delta_y) > fabsf(delta_x) * SWIPE_AXIS_RATIO &&
-			avg_vel.y < -SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.y) > fabsf(avg_vel.x) * SWIPE_AXIS_RATIO) {
-			touch_fired_two = true;
-			dispatch_gesture(Gesture_TwoFingerSwipeDown);
-		} else if (delta_y > SWIPE_MIN_DISTANCE &&
-			fabsf(delta_y) > fabsf(delta_x) * SWIPE_AXIS_RATIO &&
-			avg_vel.y > SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.y) > fabsf(avg_vel.x) * SWIPE_AXIS_RATIO) {
-			touch_fired_two = true;
-			dispatch_gesture(Gesture_TwoFingerSwipeUp);
-		}
+		handle_swipe_multi(&swipe_two, timestamp, avg_pos, avg_vel,
+				    Gesture_TwoFingerSwipeLeft, Gesture_TwoFingerSwipeRight,
+				    Gesture_TwoFingerSwipeDown, Gesture_TwoFingerSwipeUp);
 	} else if (nFingers == 3) {
-		if (!touch_tracking) {
-			touch_tracking = true;
-			touch_fired = false;
-			touch_start_pos = avg_pos;
-			touch_start_time = timestamp;
-			touch_max_delta = 0.0f;
-			return;
-		}
-
-		if (touch_fired) return;
-
-		float delta_x = avg_pos.x - touch_start_pos.x;
-		float delta_y = avg_pos.y - touch_start_pos.y;
-		float abs_dx = fabsf(delta_x);
-		float abs_dy = fabsf(delta_y);
-		if (abs_dx > touch_max_delta) touch_max_delta = abs_dx;
-		if (abs_dy > touch_max_delta) touch_max_delta = abs_dy;
-
-		if (delta_x < -SWIPE_MIN_DISTANCE &&
-			fabsf(delta_x) > fabsf(delta_y) * SWIPE_AXIS_RATIO &&
-			avg_vel.x < -SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.x) > fabsf(avg_vel.y) * SWIPE_AXIS_RATIO) {
-			touch_fired = true;
-			dispatch_gesture(Gesture_ThreeFingerSwipeLeft);
-		} else if (delta_x > SWIPE_MIN_DISTANCE &&
-			fabsf(delta_x) > fabsf(delta_y) * SWIPE_AXIS_RATIO &&
-			avg_vel.x > SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.x) > fabsf(avg_vel.y) * SWIPE_AXIS_RATIO) {
-			touch_fired = true;
-			dispatch_gesture(Gesture_ThreeFingerSwipeRight);
-		} else if (delta_y < -SWIPE_MIN_DISTANCE &&
-			fabsf(delta_y) > fabsf(delta_x) * SWIPE_AXIS_RATIO &&
-			avg_vel.y < -SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.y) > fabsf(avg_vel.x) * SWIPE_AXIS_RATIO) {
-			touch_fired = true;
-			dispatch_gesture(Gesture_ThreeFingerSwipeDown);
-		} else if (delta_y > SWIPE_MIN_DISTANCE &&
-			fabsf(delta_y) > fabsf(delta_x) * SWIPE_AXIS_RATIO &&
-			avg_vel.y > SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.y) > fabsf(avg_vel.x) * SWIPE_AXIS_RATIO) {
-			touch_fired = true;
-			dispatch_gesture(Gesture_ThreeFingerSwipeUp);
-		}
+		handle_swipe_multi(&swipe_three, timestamp, avg_pos, avg_vel,
+				     Gesture_ThreeFingerSwipeLeft, Gesture_ThreeFingerSwipeRight,
+				     Gesture_ThreeFingerSwipeDown, Gesture_ThreeFingerSwipeUp);
 	} else if (nFingers == 4) {
-		if (!touch_tracking_four) {
-			touch_tracking_four = true;
-			touch_fired_four = false;
-			touch_start_pos_four = avg_pos;
-			touch_start_time_four = timestamp;
-			touch_max_delta_four = 0.0f;
-			return;
-		}
-
-		if (touch_fired_four) return;
-
-		float delta_x = avg_pos.x - touch_start_pos_four.x;
-		float delta_y = avg_pos.y - touch_start_pos_four.y;
-		float abs_dx = fabsf(delta_x);
-		float abs_dy = fabsf(delta_y);
-		if (abs_dx > touch_max_delta_four) touch_max_delta_four = abs_dx;
-		if (abs_dy > touch_max_delta_four) touch_max_delta_four = abs_dy;
-
-		if (delta_x < -SWIPE_MIN_DISTANCE &&
-			fabsf(delta_x) > fabsf(delta_y) * SWIPE_AXIS_RATIO &&
-			avg_vel.x < -SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.x) > fabsf(avg_vel.y) * SWIPE_AXIS_RATIO) {
-			touch_fired_four = true;
-			dispatch_gesture(Gesture_FourFingerSwipeLeft);
-		} else if (delta_x > SWIPE_MIN_DISTANCE &&
-			fabsf(delta_x) > fabsf(delta_y) * SWIPE_AXIS_RATIO &&
-			avg_vel.x > SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.x) > fabsf(avg_vel.y) * SWIPE_AXIS_RATIO) {
-			touch_fired_four = true;
-			dispatch_gesture(Gesture_FourFingerSwipeRight);
-		} else if (delta_y < -SWIPE_MIN_DISTANCE &&
-			fabsf(delta_y) > fabsf(delta_x) * SWIPE_AXIS_RATIO &&
-			avg_vel.y < -SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.y) > fabsf(avg_vel.x) * SWIPE_AXIS_RATIO) {
-			touch_fired_four = true;
-			dispatch_gesture(Gesture_FourFingerSwipeDown);
-		} else if (delta_y > SWIPE_MIN_DISTANCE &&
-			fabsf(delta_y) > fabsf(delta_x) * SWIPE_AXIS_RATIO &&
-			avg_vel.y > SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.y) > fabsf(avg_vel.x) * SWIPE_AXIS_RATIO) {
-			touch_fired_four = true;
-			dispatch_gesture(Gesture_FourFingerSwipeUp);
-		}
+		handle_swipe_multi(&swipe_four, timestamp, avg_pos, avg_vel,
+				     Gesture_FourFingerSwipeLeft, Gesture_FourFingerSwipeRight,
+				     Gesture_FourFingerSwipeDown, Gesture_FourFingerSwipeUp);
 	} else if (nFingers == 5) {
-		if (!touch_tracking_five) {
-			touch_tracking_five = true;
-			touch_fired_five = false;
-			touch_start_pos_five = avg_pos;
-			touch_start_time_five = timestamp;
-			touch_max_delta_five = 0.0f;
-			return;
-		}
-
-		if (touch_fired_five) return;
-
-		float delta_x = avg_pos.x - touch_start_pos_five.x;
-		float delta_y = avg_pos.y - touch_start_pos_five.y;
-		float abs_dx = fabsf(delta_x);
-		float abs_dy = fabsf(delta_y);
-		if (abs_dx > touch_max_delta_five) touch_max_delta_five = abs_dx;
-		if (abs_dy > touch_max_delta_five) touch_max_delta_five = abs_dy;
-
-		if (delta_x < -SWIPE_MIN_DISTANCE &&
-			fabsf(delta_x) > fabsf(delta_y) * SWIPE_AXIS_RATIO &&
-			avg_vel.x < -SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.x) > fabsf(avg_vel.y) * SWIPE_AXIS_RATIO) {
-			touch_fired_five = true;
-			dispatch_gesture(Gesture_FiveFingerSwipeLeft);
-		} else if (delta_x > SWIPE_MIN_DISTANCE &&
-			fabsf(delta_x) > fabsf(delta_y) * SWIPE_AXIS_RATIO &&
-			avg_vel.x > SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.x) > fabsf(avg_vel.y) * SWIPE_AXIS_RATIO) {
-			touch_fired_five = true;
-			dispatch_gesture(Gesture_FiveFingerSwipeRight);
-		} else if (delta_y < -SWIPE_MIN_DISTANCE &&
-			fabsf(delta_y) > fabsf(delta_x) * SWIPE_AXIS_RATIO &&
-			avg_vel.y < -SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.y) > fabsf(avg_vel.x) * SWIPE_AXIS_RATIO) {
-			touch_fired_five = true;
-			dispatch_gesture(Gesture_FiveFingerSwipeDown);
-		} else if (delta_y > SWIPE_MIN_DISTANCE &&
-			fabsf(delta_y) > fabsf(delta_x) * SWIPE_AXIS_RATIO &&
-			avg_vel.y > SWIPE_MIN_VELOCITY &&
-			fabsf(avg_vel.y) > fabsf(avg_vel.x) * SWIPE_AXIS_RATIO) {
-			touch_fired_five = true;
-			dispatch_gesture(Gesture_FiveFingerSwipeUp);
-		}
+		handle_swipe_multi(&swipe_five, timestamp, avg_pos, avg_vel,
+				     Gesture_FiveFingerSwipeLeft, Gesture_FiveFingerSwipeRight,
+				     Gesture_FiveFingerSwipeDown, Gesture_FiveFingerSwipeUp);
 	}
 }
 
@@ -386,13 +260,6 @@ bool touch_begin(struct table *mode_map, struct table *blacklst, struct mode **c
 	}
 
 	MTRegisterContactFrameCallback(touch_device, touch_callback);
-	if (!MTDeviceIsValid(touch_device)) {
-		warn("failed to register multitouch callback.. touch gestures disabled\n");
-		MTDeviceRelease(touch_device);
-		touch_device = NULL;
-		reset_touch_state();
-		return false;
-	}
 
 	OSStatus start_status = MTDeviceStart(touch_device, 0);
 	if (start_status != noErr) {

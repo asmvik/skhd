@@ -184,7 +184,8 @@ static uint32_t literal_keycode_value[] =
     Gesture_FourFingerTap,
     Gesture_FiveFingerSwipeLeft, Gesture_FiveFingerSwipeRight,
     Gesture_FiveFingerSwipeUp, Gesture_FiveFingerSwipeDown,
-    Gesture_FiveFingerTap
+    Gesture_FiveFingerTap,
+    Gesture_TwoFingerTap
 };
 
 static inline void

@@ -31,6 +31,7 @@
 #define Gesture_FiveFingerSwipeDown        (Gesture_Keycode_Base + 17)
 #define Gesture_FourFingerTap              (Gesture_Keycode_Base + 18)
 #define Gesture_FiveFingerTap              (Gesture_Keycode_Base + 19)
+#define Gesture_TwoFingerTap               (Gesture_Keycode_Base + 20)
 
 enum osx_event_mask
 {
