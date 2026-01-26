@@ -205,7 +205,8 @@ static enum hotkey_flag modifier_flags_value[] =
     Hotkey_Flag_Shift,      Hotkey_Flag_LShift,     Hotkey_Flag_RShift,
     Hotkey_Flag_Cmd,        Hotkey_Flag_LCmd,       Hotkey_Flag_RCmd,
     Hotkey_Flag_Control,    Hotkey_Flag_LControl,   Hotkey_Flag_RControl,
-    Hotkey_Flag_Fn,         Hotkey_Flag_Hyper,      Hotkey_Flag_Meh,
+    Hotkey_Flag_Fn,         Hotkey_Flag_Hyper,      Hotkey_Flag_LHyper,
+    Hotkey_Flag_RHyper,     Hotkey_Flag_Meh,
 };
 
 static uint32_t
