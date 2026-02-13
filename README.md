@@ -127,6 +127,14 @@ literal      = 'single letter or built-in keyword'
 
 keycode      = 'apple keyboard kVK_<Key> values (0x3C)'
 
+modifier keyword
+             = 'alt' | 'lalt' | 'ralt' |
+               'shift' | 'lshift' | 'rshift' |
+               'cmd' | 'lcmd' | 'rcmd' |
+               'ctrl' | 'lctrl' | 'rctrl' |
+               'fn' | 'hyper' | 'meh'
+
+
 proc_map_lst = * <proc_map>
 
 proc_map     = <string> ':' <command> | <string>     '~' |
