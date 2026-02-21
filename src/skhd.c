@@ -170,6 +170,8 @@ static EVENT_TAP_CALLBACK(key_handler)
     } break;
     case kCGEventKeyDown: {
         if (table_find(&blacklst, carbon.process_name)) return event;
+        if (table_find(&blacklst, carbon.process_bundle_id)) return event;
+        if (table_find(&blacklst, carbon.process_bundle_name)) return event;
         if (!current_mode) return event;
 
         BEGIN_TIMED_BLOCK("handle_keypress");
@@ -181,6 +183,8 @@ static EVENT_TAP_CALLBACK(key_handler)
     } break;
     case NX_SYSDEFINED: {
         if (table_find(&blacklst, carbon.process_name)) return event;
+        if (table_find(&blacklst, carbon.process_bundle_id)) return event;
+        if (table_find(&blacklst, carbon.process_bundle_name)) return event;
         if (!current_mode) return event;
 
         struct hotkey eventkey;

@@ -147,7 +147,9 @@ find_process_command_mapping(struct hotkey *hotkey, uint32_t *capture, struct ca
     bool found = false;
 
     for (int i = 0; i < buf_len(hotkey->process_name); ++i) {
-        if (same_string(carbon->process_name, hotkey->process_name[i])) {
+        if (same_string(carbon->process_name, hotkey->process_name[i])
+            || same_string(carbon->process_bundle_id, hotkey->process_name[i])
+            || same_string(carbon->process_bundle_name, hotkey->process_name[i])) {
             result = hotkey->command[i];
             found = true;
             break;

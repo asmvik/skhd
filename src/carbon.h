@@ -10,6 +10,8 @@ struct carbon_event
     EventTypeSpec type;
     EventHandlerRef handler_ref;
     char * volatile process_name;
+    char * volatile process_bundle_id;
+    char * volatile process_bundle_name;
 };
 
 char *find_process_name_for_pid(pid_t pid);
